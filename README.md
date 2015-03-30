@@ -1,18 +1,21 @@
 An easy way to store & fetch objects on disk in android.
 
+NOTE:
+This fork makes everything return observables which need to be subscribed to for the computation to start.
+
 Usage:
 ```java
 //Storing:
-Database.with(context).saveObject(obj);
+Database.with(context).saveObject(obj).subscribe();
 
 //Fetching with id:
-Database.with(context).load(TYPE.person).withId(id).execute();
+Database.with(context).load(TYPE.person).withId(id).execute().subscribe();
 
 //Fetching with tags:
-Database.with(context).load(TYPE.person).tagEquals("name", "john").execute();
+Database.with(context).load(TYPE.person).tagEquals("name", "john").execute().subscribe();
 
 //Fetching a list of objects sorted by ts:
-Database.with(context).load(TYPE.person).orderByTs(SORT_ORDER.DESC).limit(20).execute();
+Database.with(context).load(TYPE.person).orderByTs(SORT_ORDER.DESC).limit(20).execute().subscribe();
 ```
 
 Here obj implements ```Database.StoredObject```

@@ -1,4 +1,5 @@
 package ht.highlig.storedobject;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -14,6 +15,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
+
+import rx.Observable;
+import rx.Subscriber;
+import rx.functions.Func1;
+
 /**
  * Created by revant on 1/30/14.
  */
@@ -53,13 +59,35 @@ public class Database {
         return mInstance;
     }
 
-    public void saveObject(StoredObject object) {
+    private void saveObjectSync(StoredObject object) {
         List<StoredObject> list = new ArrayList<StoredObject>();
         list.add(object);
-        saveObjects(list);
+        saveObjectsSync(list);
     }
 
-    public void saveObjects(Collection<? extends StoredObject> objects) {
+    public Observable<Void> saveObject(final StoredObject object) {
+        return Observable.create(new Observable.OnSubscribe<Void>() {
+            @Override
+            public void call(Subscriber<? super Void> subscriber) {
+                saveObjectSync(object);
+                subscriber.onNext(null);
+                subscriber.onCompleted();
+            }
+        });
+    }
+
+    public Observable<Void> saveObjects(final Collection<? extends StoredObject> objects) {
+        return Observable.create(new Observable.OnSubscribe<Void>() {
+            @Override
+            public void call(Subscriber<? super Void> subscriber) {
+                saveObjectsSync(objects);
+                subscriber.onNext(null);
+                subscriber.onCompleted();
+            }
+        });
+    }
+
+    private void saveObjectsSync(Collection<? extends StoredObject> objects) {
         SQLiteDatabase db = null;
         mDbAccessManager.lockDbForWrite();
         try {
@@ -295,7 +323,18 @@ public class Database {
         }
     }
 
-    public void deleteObjects(Collection<? extends StoredObject> objects) {
+    public Observable<Void> deleteObjects(final Collection<? extends StoredObject> objects) {
+        return Observable.create(new Observable.OnSubscribe<Void>() {
+            @Override
+            public void call(Subscriber<? super Void> subscriber) {
+                deleteObjectsSync(objects);
+                subscriber.onNext(null);
+                subscriber.onCompleted();
+            }
+        });
+    }
+
+    private void deleteObjectsSync(Collection<? extends StoredObject> objects) {
         if (objects == null || objects.size() == 0) return;
         StoredObject.TYPE[] types = new StoredObject.TYPE[objects.size()];
         String[] ids = new String[objects.size()];
@@ -305,10 +344,21 @@ public class Database {
             ids[i] = object.getStoredObjectId();
             i++;
         }
-        deleteObjects(types, ids);
+        deleteObjectsSync(types, ids);
     }
 
-    public void deleteObjects(StoredObject.TYPE[] types, String[] ids) {
+    public Observable<Void> deleteObjects(final StoredObject.TYPE[] types, final String[] ids) {
+        return Observable.create(new Observable.OnSubscribe<Void>() {
+            @Override
+            public void call(Subscriber<? super Void> subscriber) {
+                deleteObjectsSync(types, ids);
+                subscriber.onNext(null);
+                subscriber.onCompleted();
+            }
+        });
+    }
+
+    private void deleteObjectsSync(StoredObject.TYPE[] types, String[] ids) {
         if (types == null || ids == null || types.length == 0 || ids.length == 0) return;
         SQLiteDatabase db = null;
         mDbAccessManager.lockDbForWrite();
@@ -341,13 +391,35 @@ public class Database {
         }
     }
 
-    public void deleteObject(StoredObject object) {
+    public Observable<Void> deleteObject(final StoredObject object) {
+        return Observable.create(new Observable.OnSubscribe<Void>() {
+            @Override
+            public void call(Subscriber<? super Void> subscriber) {
+                deleteObjectSync(object);
+                subscriber.onNext(null);
+                subscriber.onCompleted();
+            }
+        });
+    }
+
+    private void deleteObjectSync(StoredObject object) {
         if (object == null || object.getStoredObjectId() == null || object.getStoredObjectType() == null) return;
-        deleteObjects(new StoredObject.TYPE[]{object.getStoredObjectType()},
+        deleteObjectsSync(new StoredObject.TYPE[]{object.getStoredObjectType()},
                 new String[]{object.getStoredObjectId()});
     }
 
-    public void clearObjectsOfType(StoredObject.TYPE type) {
+    public Observable<Void> clearObjectsOfType(final StoredObject.TYPE type) {
+        return Observable.create(new Observable.OnSubscribe<Void>() {
+            @Override
+            public void call(Subscriber<? super Void> subscriber) {
+                clearObjectsOfTypeSync(type);
+                subscriber.onNext(null);
+                subscriber.onCompleted();
+            }
+        });
+    }
+
+    private void clearObjectsOfTypeSync(StoredObject.TYPE type) {
         SQLiteDatabase db = null;
         mDbAccessManager.lockDbForWrite();
         try {
@@ -493,7 +565,17 @@ public class Database {
             return this;
         }
 
-        public <T extends StoredObject> List<T> execute() {
+        public <T extends StoredObject> Observable<List<T>> execute() {
+            return Observable.create(new Observable.OnSubscribe<List<T>>() {
+                @Override
+                public void call(Subscriber<? super List<T>> subscriber) {
+                    subscriber.onNext((List<T>)Request.this.executeSync());
+                    subscriber.onCompleted();
+                }
+            });
+        }
+
+        private <T extends StoredObject> List<T> executeSync() {
             String order = (tsOrdering == null) ? null :
                     StringUtil.concat(ObjectsTableColumn.ts, " ", tsOrdering);
             List<T> retVal = null;
@@ -506,20 +588,24 @@ public class Database {
                 retVal = loadObjects(type, order, limit, before, after);
             }
             if (truncate) {
-                clearObjectsOfType(type);
-                saveObjects(retVal);
+                clearObjectsOfTypeSync(type);
+                saveObjectsSync(retVal);
             }
             return retVal;
         }
 
-        public <T extends StoredObject> T getFirst() {
-            List<T> list = execute();
-            if (list == null || list.size() == 0) {
-                Log.d(TAG, "No object of type: " + type + " found ");
-                return null;
-            } else {
-                return list.get(0);
-            }
+        public <T extends StoredObject> Observable<T> getFirst() {
+            return execute().map(new Func1<List<? extends StoredObject>, T>() {
+                @Override
+                public T call(List<? extends StoredObject> list) {
+                    if (list == null || list.size() == 0) {
+                        Log.d(TAG, "No object of type: " + type + " found ");
+                        return null;
+                    } else {
+                        return (T)list.get(0);
+                    }
+                }
+            });
         }
 
         @Override

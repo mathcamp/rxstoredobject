@@ -18,6 +18,7 @@ import java.util.Set;
 import rx.Observable;
 import rx.Subscriber;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 import timber.log.Timber;
 
 /**
@@ -64,8 +65,12 @@ public class Database {
         saveObjectsSync(list);
     }
 
+    private <T> Observable<T> createDbObservable(Observable.OnSubscribe<T> onSubscribe) {
+        return Observable.create(onSubscribe).subscribeOn(Schedulers.io());
+    }
+
     public Observable<Void> saveObject(final StoredObject object) {
-        return Observable.create(new Observable.OnSubscribe<Void>() {
+        return createDbObservable(new Observable.OnSubscribe<Void>() {
             @Override
             public void call(Subscriber<? super Void> subscriber) {
                 saveObjectSync(object);
@@ -76,7 +81,7 @@ public class Database {
     }
 
     public Observable<Void> saveObjects(final Collection<? extends StoredObject> objects) {
-        return Observable.create(new Observable.OnSubscribe<Void>() {
+        return createDbObservable(new Observable.OnSubscribe<Void>() {
             @Override
             public void call(Subscriber<? super Void> subscriber) {
                 saveObjectsSync(objects);
@@ -323,7 +328,7 @@ public class Database {
     }
 
     public Observable<Void> deleteObjects(final Collection<? extends StoredObject> objects) {
-        return Observable.create(new Observable.OnSubscribe<Void>() {
+        return createDbObservable(new Observable.OnSubscribe<Void>() {
             @Override
             public void call(Subscriber<? super Void> subscriber) {
                 deleteObjectsSync(objects);
@@ -347,7 +352,7 @@ public class Database {
     }
 
     public Observable<Void> deleteObjects(final StoredObject.TYPE[] types, final String[] ids) {
-        return Observable.create(new Observable.OnSubscribe<Void>() {
+        return createDbObservable(new Observable.OnSubscribe<Void>() {
             @Override
             public void call(Subscriber<? super Void> subscriber) {
                 deleteObjectsSync(types, ids);
@@ -391,7 +396,7 @@ public class Database {
     }
 
     public Observable<Void> deleteObject(final StoredObject object) {
-        return Observable.create(new Observable.OnSubscribe<Void>() {
+        return createDbObservable(new Observable.OnSubscribe<Void>() {
             @Override
             public void call(Subscriber<? super Void> subscriber) {
                 deleteObjectSync(object);
@@ -408,7 +413,7 @@ public class Database {
     }
 
     public Observable<Void> clearObjectsOfType(final StoredObject.TYPE type) {
-        return Observable.create(new Observable.OnSubscribe<Void>() {
+        return createDbObservable(new Observable.OnSubscribe<Void>() {
             @Override
             public void call(Subscriber<? super Void> subscriber) {
                 clearObjectsOfTypeSync(type);
@@ -565,7 +570,7 @@ public class Database {
         }
 
         public <T extends StoredObject> Observable<List<T>> execute() {
-            return Observable.create(new Observable.OnSubscribe<List<T>>() {
+            return createDbObservable(new Observable.OnSubscribe<List<T>>() {
                 @Override
                 public void call(Subscriber<? super List<T>> subscriber) {
                     subscriber.onNext((List<T>)Request.this.executeSync());

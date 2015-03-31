@@ -4,7 +4,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
 
 import com.google.gson.Gson;
 
@@ -19,13 +18,13 @@ import java.util.Set;
 import rx.Observable;
 import rx.Subscriber;
 import rx.functions.Func1;
+import timber.log.Timber;
 
 /**
  * Created by revant on 1/30/14.
  */
 
 public class Database {
-    public static final String TAG = Database.class.getName();
     public static final Gson GSON = new Gson();
 
     public interface StoredObject {
@@ -142,7 +141,7 @@ public class Database {
             }
             db.setTransactionSuccessful();
         } catch (Exception e) {
-            Log.e(TAG, "Error when storing object:\n" + e.getMessage());
+            Timber.e("Error when storing object:\n" + e.getMessage());
         } finally {
             if (db != null) {
                 db.endTransaction();
@@ -207,7 +206,7 @@ public class Database {
             return storedObjects;
 
         } catch (Exception e) {
-            Log.e(TAG, "Error when fetching stored objects " + e.getMessage());
+            Timber.e("Error when fetching stored objects " + e.getMessage());
             return new ArrayList<T>();
         } finally {
             if (cursor != null) {
@@ -261,7 +260,7 @@ public class Database {
             }
             return storedObjects;
         } catch (Exception e) {
-            Log.e(TAG, "Unable to fetch stored object: " + e.getMessage());
+            Timber.e("Unable to fetch stored object: " + e.getMessage());
             return null;
         } finally {
             if (cursor != null) {
@@ -313,7 +312,7 @@ public class Database {
             }
             return finalIds;
         } catch (Exception e) {
-            Log.e(TAG, "Unable to fetch stored object: " + e.getMessage());
+            Timber.e("Unable to fetch stored object: " + e.getMessage());
             return null;
         } finally {
             if (cursor != null) {
@@ -381,7 +380,7 @@ public class Database {
             db.delete(DatabaseSchema.TAGS_TABLE, selection, whereArgs);
             db.setTransactionSuccessful();
         } catch (Exception e) {
-            Log.e(TAG, "Error when storing object:\n" + e.getMessage());
+            Timber.e("Error when storing object:\n" + e.getMessage());
         } finally {
             if (db != null) {
                 db.endTransaction();
@@ -436,7 +435,7 @@ public class Database {
 
             db.setTransactionSuccessful();
         } catch (Exception e) {
-            Log.e(TAG, "Error when storing object:\n" + e.getMessage());
+            Timber.e("Error when storing object:\n" + e.getMessage());
             System.out.println(e);
         } finally {
             if (db != null) {
@@ -599,7 +598,7 @@ public class Database {
                 @Override
                 public T call(List<? extends StoredObject> list) {
                     if (list == null || list.size() == 0) {
-                        Log.d(TAG, "No object of type: " + type + " found ");
+                        Timber.d("No object of type: " + type + " found ");
                         return null;
                     } else {
                         return (T)list.get(0);

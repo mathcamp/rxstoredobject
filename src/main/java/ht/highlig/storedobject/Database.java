@@ -69,12 +69,12 @@ public class Database {
         return Observable.create(onSubscribe).subscribeOn(Schedulers.io());
     }
 
-    public Observable<Void> saveObject(final StoredObject object) {
-        return createDbObservable(new Observable.OnSubscribe<Void>() {
+    public Observable<StoredObject> saveObject(final StoredObject object) {
+        return createDbObservable(new Observable.OnSubscribe<StoredObject>() {
             @Override
-            public void call(Subscriber<? super Void> subscriber) {
+            public void call(Subscriber<? super StoredObject> subscriber) {
                 saveObjectSync(object);
-                subscriber.onNext(null);
+                subscriber.onNext(object);
                 subscriber.onCompleted();
             }
         });

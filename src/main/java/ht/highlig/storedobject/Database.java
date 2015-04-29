@@ -69,6 +69,41 @@ public class Database {
         return Observable.create(onSubscribe).subscribeOn(Schedulers.io());
     }
 
+    public Observable<Void> recreateTables() {
+        return createDbObservable(new Observable.OnSubscribe<Void>() {
+            @Override
+            public void call(Subscriber<? super Void> subscriber) {
+                recreateTablesSync();
+                subscriber.onNext(null);
+                subscriber.onCompleted();
+            }
+        });
+    }
+
+    public void recreateTablesSync() {
+        SQLiteDatabase db = null;
+        mDbAccessManager.lockDbForWrite();
+        try {
+            db = mDbAccessManager.getWritableDatabase();
+            if (db != null) {
+                db.beginTransaction();
+            } else {
+                throw new DatabaseException("Database can't be opened for writing");
+            }
+
+            mDbAccessManager.onCreate(db);
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            Timber.e("Error when storing object:\n" + e.getMessage());
+        } finally {
+            if (db != null) {
+                db.endTransaction();
+                db.close();
+            }
+            mDbAccessManager.unlockDbForWrite();
+        }
+    }
+
     public Observable<StoredObject> saveObject(final StoredObject object) {
         return createDbObservable(new Observable.OnSubscribe<StoredObject>() {
             @Override
